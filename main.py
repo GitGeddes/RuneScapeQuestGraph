@@ -147,10 +147,13 @@ def getQuestRequirementContainer(tables):
                     if key == u'questdetails':
                         for container in table.contents:
                             if type(container) == bs4.element.Tag:
-                                for content in container.contents:
-                                    if type(content) == bs4.element.Tag:
-                                        if content.contents[1].contents[0].contents[0] == u"Requirements":
-                                            return content.contents[2]
+                                for row in container.contents:
+                                    if type(row) == bs4.element.Tag and row.contents[1].contents[0].contents[0] == u"Requirements":
+                                        for element in row.contents[2]:
+                                            if type(element) == bs4.element.Tag:
+                                                for bullets in element.contents:
+                                                    if type(bullets) == bs4.element.Tag and "Completion" in bullets.contents[0]:
+                                                        return bullets
 
 def openPage(url):
     response = BR.open(url)
@@ -199,6 +202,8 @@ def main():
     getQuestList(tables[0])  # f2p
     getQuestList(tables[1])  # members
     setQuestNames(QUEST_DICT)
+
+    openPage(QUEST_DICT[u"In Aid of the Myreque"].getURL())
 
     if not os.path.isfile('quests.txt'):
         for quest in QUEST_DICT.keys():
