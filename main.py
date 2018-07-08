@@ -1,7 +1,9 @@
 import bs4
 from bs4 import BeautifulSoup as bs
 import json
+import matplotlib.pyplot as plt
 import mechanize
+import networkx as nx
 import os
 
 BASE_URL = "http://oldschoolrunescape.wikia.com"
@@ -33,9 +35,6 @@ class QuestNode:
 
     def setURL(self, url):
         self.url = url
-
-    def setReqs(self, reqs):
-        self.reqs = reqs
 
     def addReq(self, quest):
         if quest not in self.reqs:
@@ -80,7 +79,6 @@ class QuestNode:
                 self.removeReq(name)
             else:
                 alreadySeen.append(name)
-        return self.reqs
 
     def printReqs(self):
         if len(self.reqs) <= 0:
@@ -152,8 +150,12 @@ def getQuestRequirementContainer(tables):
                                         for element in row.contents[2]:
                                             if type(element) == bs4.element.Tag:
                                                 for bullets in element.contents:
-                                                    if type(bullets) == bs4.element.Tag and "Completion" in bullets.contents[0]:
-                                                        return bullets
+                                                    if type(bullets) == bs4.element.Tag and type(bullets.contents[0]) == bs4.element.NavigableString:
+                                                        if "completion" in bullets.contents[0].lower() or "completed" in bullets.contents[0].lower():
+                                                            return bullets
+                                            elif type(element) == bs4.element.NavigableString:
+                                                if "completion" in element.lower() or "completed" in element.lower():
+                                                    return row.contents[2].contents[row.contents[2].index(element) + 1]
 
 def openPage(url):
     response = BR.open(url)
@@ -185,6 +187,16 @@ def convertDictToQuestNode(d):
     newQuest.init(d['name'], d['url'], d['href'], newReqs)
     return newQuest
 
+def generateGraphForQuest(quest):
+    graph = nx.Graph()
+    graph.add_node(str(quest.getName()))
+    for req in quest.getReqs():
+        graph.add_node(str(req.getName()))
+        graph.add_edge(str(quest.getName()), str(req.getName()))
+        if len(req.getReqs()) > 0:
+            graph = nx.compose(graph, generateGraphForQuest(req))
+    return graph
+
 def main():
     global QUEST_DICT
     BR.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
@@ -202,8 +214,6 @@ def main():
     getQuestList(tables[0])  # f2p
     getQuestList(tables[1])  # members
     setQuestNames(QUEST_DICT)
-
-    openPage(QUEST_DICT[u"In Aid of the Myreque"].getURL())
 
     if not os.path.isfile('quests.txt'):
         for quest in QUEST_DICT.keys():
@@ -231,7 +241,16 @@ def main():
             # print json.dumps(jsonObj, indent=4, sort_keys=True)
 
     for quest in QUEST_DICT.keys():
-        # QUEST_DICT[quest].setReqs(QUEST_DICT[quest].removeDuplicates())
         QUEST_DICT[quest].printReqs()
+
+    # Create a network from the Quest dictionary
+    completeGraph = nx.Graph()
+    for name in QUEST_DICT.keys():
+        #completeGraph.add_node(name)
+        completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[name]))
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"Shilo Village (quest)"])
+    nx.draw(completeGraph, with_labels=True)
+    plt.gcf().canvas.set_window_title("All Old School RuneScape Quests")
+    plt.show()
 
 main()
