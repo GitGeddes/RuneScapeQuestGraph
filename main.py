@@ -1,9 +1,12 @@
 import bs4
 from bs4 import BeautifulSoup as bs
+import graphviz
 import json
 import matplotlib.pyplot as plt
 import mechanize
 import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
+import pygraphviz
 import os
 
 BASE_URL = "http://oldschoolrunescape.wikia.com"
@@ -31,7 +34,7 @@ class QuestNode:
 
     def setHREF(self, href):
         self.href = href
-        self.url = BASE_URL + href
+        self.setURL(BASE_URL + href)
 
     def setURL(self, url):
         self.url = url
@@ -188,7 +191,7 @@ def convertDictToQuestNode(d):
     return newQuest
 
 def generateGraphForQuest(quest):
-    graph = nx.Graph()
+    graph = nx.DiGraph()
     graph.add_node(str(quest.getName()))
     for req in quest.getReqs():
         graph.add_node(str(req.getName()))
@@ -244,13 +247,23 @@ def main():
         QUEST_DICT[quest].printReqs()
 
     # Create a network from the Quest dictionary
-    completeGraph = nx.Graph()
+    completeGraph = nx.DiGraph()
     for name in QUEST_DICT.keys():
-        #completeGraph.add_node(name)
         completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[name]))
-    #completeGraph = generateGraphForQuest(QUEST_DICT[u"Shilo Village (quest)"])
-    nx.draw(completeGraph, with_labels=True)
+
+    '''completeGraph = generateGraphForQuest(QUEST_DICT[u"Dragon Slayer II"])
+    completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Recipe for Disaster"]))
+    completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Monkey Madness II"]))
+    completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"A Taste of Hope"]))'''
+
+    '''nx.draw_networkx_nodes(completeGraph, ax=None, pos=graphviz_layout(completeGraph, prog='dot'), node_shape='s')
+    nx.draw_networkx_labels(completeGraph, ax=None, pos=graphviz_layout(completeGraph, prog='dot'), font_size=10)
+    nx.draw_networkx_edges(completeGraph, ax=None, pos=graphviz_layout(completeGraph, prog='dot'))'''
+
+    nx.draw(completeGraph, pos=graphviz_layout(completeGraph, prog='dot'), with_labels=True)
     plt.gcf().canvas.set_window_title("All Old School RuneScape Quests")
+    plt.axis('tight')
+    plt.axis('off')
     plt.show()
 
 main()
