@@ -9,8 +9,8 @@ from networkx.drawing.nx_agraph import graphviz_layout
 import pygraphviz
 import os
 
-BASE_URL = "http://oldschoolrunescape.wikia.com"
-LIST_URL = "http://oldschoolrunescape.wikia.com/wiki/Quests/List"
+BASE_URL = "https://oldschool.runescape.wiki"
+LIST_URL = "https://oldschool.runescape.wiki/w/Quests/List"
 BR = mechanize.Browser()
 
 QUEST_DICT = {}
