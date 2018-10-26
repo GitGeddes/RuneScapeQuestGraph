@@ -13,6 +13,7 @@ Build connected graphs for any number of quests in the game, between 1 and all q
   - Add any new quests that get released, even after this script was written.
   - Plot a graph using Matplotlib with quest names on each node and lines connecting quests to their requirements and open this graph in a new window. (Only opens embedded window in PyCharm 2018.2.4)
   - Output a *png* file that looks a lot better than the Matplotlib graph.
+  - Inform the user of the quest with the tallest tree structure. (Not the largest number of requirements)
 
 You can also modify the Python file and un-comment the quests at the bottom to show one quest or just a few.
 Or edit those lines and add other quests you might want to look at.
