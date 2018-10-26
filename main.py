@@ -1,20 +1,18 @@
 import bs4
 from bs4 import BeautifulSoup as bs
-import graphviz
 import json
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import mechanize
 import networkx as nx
-from networkx.drawing.nx_agraph import graphviz_layout
-import pygraphviz
 import os
 
-BASE_URL = "http://oldschoolrunescape.wikia.com"
-LIST_URL = "http://oldschoolrunescape.wikia.com/wiki/Quests/List"
+BASE_URL = "http://oldschool.runescape.wiki"
+LIST_URL = "http://oldschool.runescape.wiki/w/Quests/List"
 BR = mechanize.Browser()
 
-QUEST_DICT = {}
-QUEST_NAMES = []
+QUEST_DICT = {}  # Dictionary with keys=quest name, elements=QuestNodes
+QUEST_NAMES = {}  # Removed "(quest)" from all quest names
 
 class QuestNode:
     def __init__(self):
@@ -38,6 +36,9 @@ class QuestNode:
 
     def setURL(self, url):
         self.url = url
+
+    def setReqs(self, reqs):
+        self.reqs = reqs
 
     def addReq(self, quest):
         if quest not in self.reqs:
@@ -85,7 +86,7 @@ class QuestNode:
 
     def printReqs(self):
         if len(self.reqs) <= 0:
-            return self.name
+            print self.name
         else:
             print self.name
             for quest in self.reqs:
@@ -134,10 +135,13 @@ def getQuestList(table):
             QUEST_DICT[quest.getName()] = quest
 
 def setQuestNames(quests):
-    names = []
+    names = {}
     for quest in quests.keys():
-        names.append(quest)
-    QUEST_NAMES.extend(names)
+        name = quest
+        if quest.endswith(" (quest)"):
+            name = quest[:-len(" (quest)")]
+        names[name] = quest
+    QUEST_NAMES.update(names)
     return
 
 def getQuestRequirementContainer(tables):
@@ -150,7 +154,7 @@ def getQuestRequirementContainer(tables):
                             if type(container) == bs4.element.Tag:
                                 for row in container.contents:
                                     if type(row) == bs4.element.Tag and row.contents[1].contents[0].contents[0] == u"Requirements":
-                                        for element in row.contents[2]:
+                                        for element in row.contents[3]:
                                             if type(element) == bs4.element.Tag:
                                                 for bullets in element.contents:
                                                     if type(bullets) == bs4.element.Tag and type(bullets.contents[0]) == bs4.element.NavigableString:
@@ -158,7 +162,7 @@ def getQuestRequirementContainer(tables):
                                                             return bullets
                                             elif type(element) == bs4.element.NavigableString:
                                                 if "completion" in element.lower() or "completed" in element.lower():
-                                                    return row.contents[2].contents[row.contents[2].index(element) + 1]
+                                                    return row.contents[3].contents[row.contents[3].index(element) + 1]
 
 def openPage(url):
     response = BR.open(url)
@@ -172,13 +176,23 @@ def openPage(url):
 def parseContents(container):
     quests = []
     if type(container) == bs4.element.Tag:
+        if len(container.attrs) > 0:
+            for key in container.attrs.keys():
+                if key == u'href':
+                    if "Awowogei" in container.attrs[u'href']:
+                        return ["Recipe for Disaster/Freeing King Awowogei"]
+                    elif "Pirate_Pete" in container.attrs[u'href']:
+                        return ["Recipe for Disaster/Freeing Pirate Pete"]
         if len(container.contents) > 0:
             for item in container.contents:
                 parsed = parseContents(item)
                 if parsed is not None:
                     quests.extend(parsed)
-    elif container != '\n' and container != '\n\n' and container in QUEST_DICT.keys():
-        return [container]
+    elif container != '\n' and container != '\n\n' and type(container) == bs4.element.NavigableString:
+        if container in QUEST_DICT.keys():
+            return [container]
+        elif container in QUEST_NAMES.keys():
+            return [QUEST_NAMES[container]]
 
     return quests
 
@@ -200,6 +214,22 @@ def generateGraphForQuest(quest):
             graph = nx.compose(graph, generateGraphForQuest(req))
     return graph
 
+def getNodeDegree(quest):
+    degree = 0
+    if len(quest.getReqs()) > 0:
+        degree = 1
+        maxDegree = 0
+        for req in quest.getReqs():
+            nextDegree = getNodeDegree(req)
+            if nextDegree > maxDegree:
+                maxDegree = nextDegree
+        degree += maxDegree
+    return degree
+
+def getNodeLayer(graph, quest):
+    if len(nx.ancestors(graph, quest)) == 0:
+        return 0
+
 def main():
     global QUEST_DICT
     BR.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
@@ -220,12 +250,21 @@ def main():
 
     if not os.path.isfile('quests.txt'):
         for quest in QUEST_DICT.keys():
-            print "Loading", quest + "..."
-            for req in openPage(QUEST_DICT[quest].getURL()):
-                QUEST_DICT[quest].addReq(QUEST_DICT[req])
+            if quest == "Recipe for Disaster":
+                for name in QUEST_DICT.keys():
+                    if name == u'Recipe for Disaster/Full guide':
+                        continue
+                    elif 'Recipe for Disaster/' in name:
+                        QUEST_DICT[u'Recipe for Disaster'].addReq(QUEST_DICT[name])
+            else:
+                print "Loading", quest + "..."
+                for req in openPage(QUEST_DICT[quest].getURL()):
+                    QUEST_DICT[quest].addReq(QUEST_DICT[req])
 
         # Fix duplicate quests in quest requirements
         for quest in QUEST_DICT.keys():
+            if quest == "The Great Brain Robbery":
+                QUEST_DICT[quest].removeReq("Recipe for Disaster")
             QUEST_DICT[quest].removeDuplicates()
 
         with open('quests.txt', 'w') as outfile:
@@ -240,27 +279,55 @@ def main():
                 if obj is not None:
                     newQuest = convertDictToQuestNode(obj)
                     QUEST_DICT[obj['name']] = newQuest
-            # Pretty print
+            # Pretty print all QuestNode instances
             # print json.dumps(jsonObj, indent=4, sort_keys=True)
 
-    for quest in QUEST_DICT.keys():
-        QUEST_DICT[quest].printReqs()
+    # Pretty print all quest requirements
+    '''for quest in QUEST_DICT.keys():
+        QUEST_DICT[quest].printReqs()'''
 
     # Create a network from the Quest dictionary
     completeGraph = nx.DiGraph()
     for name in QUEST_DICT.keys():
+        if name == u'Recipe for Disaster/Full guide':
+            continue
         completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[name]))
 
-    '''completeGraph = generateGraphForQuest(QUEST_DICT[u"Dragon Slayer II"])
-    completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Recipe for Disaster"]))
-    completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Monkey Madness II"]))
-    completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"A Taste of Hope"]))'''
+    maxDegree = 0
+    maxQuest = ""
+    for quest in QUEST_DICT.keys():
+        degree = getNodeDegree(QUEST_DICT[quest])
+        if degree > maxDegree:
+            maxDegree = degree
+            maxQuest = quest
+    print "Quest with tallest tree structure:\n\t", maxQuest, "with degree", maxDegree
+
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"Dragon Slayer II"])
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"Recipe for Disaster"])
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"Monkey Madness II"])
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"A Taste of Hope"])
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"Mourning's Ends Part II"])
+    #completeGraph = generateGraphForQuest(QUEST_DICT[u"The Great Brain Robbery"])
+    #completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Recipe for Disaster"]))
+    #completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Monkey Madness II"]))
+    #completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"A Taste of Hope"]))
+    #completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u"Mourning's Ends Part II"]))
+    #completeGraph = nx.compose(completeGraph, generateGraphForQuest(QUEST_DICT[u'The Great Brain Robbery']))
 
     '''nx.draw_networkx_nodes(completeGraph, ax=None, pos=graphviz_layout(completeGraph, prog='dot'), node_shape='s')
     nx.draw_networkx_labels(completeGraph, ax=None, pos=graphviz_layout(completeGraph, prog='dot'), font_size=10)
     nx.draw_networkx_edges(completeGraph, ax=None, pos=graphviz_layout(completeGraph, prog='dot'))'''
 
-    nx.draw(completeGraph, pos=graphviz_layout(completeGraph, prog='dot'), with_labels=True)
+    # Draw a pretty looking image
+    aGraph = nx.nx_agraph.to_agraph(completeGraph.reverse())
+    aGraph.layout('dot', args='-Nfontsize=10 -Nwidth=".2" -Nheight=".2" -Nmargin=0 -Gfontsize=8')
+    aGraph.draw('test.png')
+
+    completeGraph = completeGraph.reverse()
+
+    nx.draw(completeGraph, pos=nx.nx_agraph.graphviz_layout(completeGraph, prog='dot'), with_labels=True)
+    #nx.draw(completeGraph, pos=nx.shell_layout(completeGraph), with_labels=True)
+    #nx.draw(aGraph, with_labels=True)
     plt.gcf().canvas.set_window_title("All Old School RuneScape Quests")
     plt.axis('tight')
     plt.axis('off')
