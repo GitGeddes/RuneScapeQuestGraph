@@ -10,6 +10,7 @@ Build connected graphs for any number of quests in the game, between 1 and all q
   - Pull all quest names and their respective URLs from the RuneScape wiki.
   - Traverse through each quest page and add all listed quest requirements.
   - Save a local copy of the quest list, including requirements, to avoid the long process of pulling data from the website.
+    - Delete the file *quests.txt* if you want to reload the list.
   - Add any new quests that get released, even after this script was written.
   - Plot a graph using Matplotlib with quest names on each node and lines connecting quests to their requirements and open this graph in a new window. (Only opens embedded window in PyCharm 2018.2.4)
   - Output a *png* file that looks a lot better than the Matplotlib graph.
@@ -52,6 +53,8 @@ $ pip install networkx
 ### Usage
 * **PyCharm IDE**: Simply download the repository (you really only need the Python file) and install all of the libraries to a Python 2.7 environment. Then the script can be run inside of PyCharm. The current version of PyCharm (2018.2.4) does not open the Matplotlib graph in a new window, instead it opens the plot in an embedded window inside the IDE. This could either be that I'm running the paid version of PyCharm or this feature changed earlier in 2018.
 * **Windows Console**: I have had trouble getting the Windows PATH working properly, but I was able to run the script using the Administrator Command Prompt for Windows. I also had to explicitly run the python.exe in the Python 2.7 installation folder. However, using the console opens a new window for the Matplotlib graph rather than PyCharm's embedded window. The benefits of this is that the standalone window can be resized to space the quest labels out and become more readable.
+
+Delete the file *quests.txt* to reload the quest list from the website. Do this any time that a new quest is released, or if you want to see the script in action.
 
 ### Todos
 
