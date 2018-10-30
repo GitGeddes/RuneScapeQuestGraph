@@ -1,9 +1,10 @@
-# RuneScape Wiki Scraper
+# RuneScape Quest Graph
 Build connected graphs for any number of quests in the game, between 1 and all quests!
 
 # New Features!
   - Updated links to the new Old School RuneScape wiki!
   - Updated quest requirement-finder to reflect new website's structure!
+  - Added example images to show how the output looks!
   - Added this README!
 
 ## Main Features:
