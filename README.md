@@ -64,7 +64,7 @@ Delete the file *quests.txt* to reload the quest list from the website. Do this 
 License
 ----
 
-MIT
+GNU General Public License v3.0
 
 [//]: # (This Readme file was made using dillinger.io)
 
