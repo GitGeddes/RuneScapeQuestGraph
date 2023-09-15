@@ -1,0 +1,21 @@
+{
+  "name": "runescapequestgraph",
+  "version": "1.0.0",
+  "description": "Build connected graphs for any number of quests in the game, between 1 and all quests!",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "d3": "^7.8.5",
+    "d3-force": "^3.0.0",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.0",
+    "jsdom": "^22.1.0"
+  }
+}

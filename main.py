@@ -42,7 +42,7 @@ class QuestNode:
 
     def addReq(self, quest):
         if quest not in self.reqs:
-            print "\tAdded requirement " + quest.getName()
+            print("\tAdded requirement " + quest.getName())
             self.reqs.append(quest)
 
     def removeReq(self, name):
@@ -86,24 +86,24 @@ class QuestNode:
 
     def printReqs(self):
         if len(self.reqs) <= 0:
-            print self.name
+            print(self.name)
         else:
-            print self.name
+            print(self.name)
             for quest in self.reqs:
                 reqs = quest.printReqsTabbed(1)
                 if reqs is not None:
-                    print '\t' + reqs
+                    print('\t' + reqs)
 
     def printReqsTabbed(self, numTabs):
         tabs = ''.join(['\t' for num in range(numTabs)])
         if len(self.reqs) <= 0:
             return self.name
         else:
-            print tabs + self.name
+            print(tabs + self.name)
             for quest in self.reqs:
                 reqs = quest.printReqsTabbed(numTabs + 1)
                 if reqs is not None:
-                    print tabs + '\t' + reqs
+                    print(tabs + '\t' + reqs)
 
 class QuestNodeEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -248,7 +248,7 @@ def main():
     getQuestList(tables[1])  # members
     setQuestNames(QUEST_DICT)
 
-    if not os.path.isfile('quests.txt'):
+    if not os.path.isfile('quests.json'):
         for quest in QUEST_DICT.keys():
             if quest == "Recipe for Disaster":
                 for name in QUEST_DICT.keys():
@@ -257,7 +257,7 @@ def main():
                     elif 'Recipe for Disaster/' in name:
                         QUEST_DICT[u'Recipe for Disaster'].addReq(QUEST_DICT[name])
             else:
-                print "Loading", quest + "..."
+                print("Loading", quest + "...")
                 for req in openPage(QUEST_DICT[quest].getURL()):
                     QUEST_DICT[quest].addReq(QUEST_DICT[req])
 
@@ -268,7 +268,7 @@ def main():
             QUEST_DICT[quest].removeDuplicates()
 
         with open('quests.txt', 'w') as outfile:
-            print "\nOutputting quest list into json text file..."
+            print("\nOutputting quest list into json text file...")
             json.dump(QUEST_DICT, outfile, cls=QuestNodeEncoder)
     else:
         with open('quests.txt') as infile:
@@ -300,7 +300,7 @@ def main():
         if degree > maxDegree:
             maxDegree = degree
             maxQuest = quest
-    print "Quest with tallest tree structure:\n\t", maxQuest, "with degree", maxDegree
+    print("Quest with tallest tree structure:\n\t", maxQuest, "with degree", maxDegree)
 
     #completeGraph = generateGraphForQuest(QUEST_DICT[u"Dragon Slayer II"])
     #completeGraph = generateGraphForQuest(QUEST_DICT[u"Recipe for Disaster"])
